@@ -10,10 +10,10 @@ from collections import defaultdict
 from collections.abc import Iterator, Callable
 from docutils.nodes import document, Node, field_list
 
-mixxx_dir = Path(os.path.dirname(os.path.realpath(__file__))) / ".."
+mixxx_dir = Path(os.path.dirname(os.path.realpath(__file__)))
 manual_dir = (mixxx_dir / ".." / "manual").resolve()
 docname_to_parse = "chapters/appendix/mixxx_controls"
-output = mixxx_dir / "res" / "controllers" / "_mixxx-controls.ts"
+output = mixxx_dir / "res" / "controllers" / "mixxx-controls.ts"
 
 
 # ======================================

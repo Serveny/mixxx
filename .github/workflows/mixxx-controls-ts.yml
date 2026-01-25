@@ -1,0 +1,64 @@
+name: Generate TS Control Types
+
+on:
+  repository_dispatch:
+    types: update-ts-crtl-types
+
+jobs:
+  update-ts-crtl-types:
+    name: Update mixxx-controls.ts
+    # This job fetches the mixxxdj/manual repository and
+    # uses it to update the `mixxx-controls.d.ts` file.
+    # If the 'source/chapters/appendix/mixxx_controls.rst'
+    # file was changed the manual build and after that
+    # the Typescript generator is is triggered
+    #
+    # This job is not run on changes to the mixxx repo. Instead, it's
+    # triggered by a repository dispatch hook that gets triggered by a
+    # corresponding workflow in the mixxxdj/manual repository whenever the
+    # mixxx_controls.rst is changed.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Event Information
+        run: echo "Event '${{ github.event.action }}' received from '${{ github.event.client_payload.repository }}'"
+
+      - name: Check out Mixxx repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.client_payload.branch }}
+
+      - name: Check out Manual repository
+        uses: actions/checkout@v6
+        with:
+          repository: mixxxdj/manual
+          ref: ${{ github.event.client_payload.branch }}
+          path: manual
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: 3.13
+
+      - name: Install Python dependencies
+        run: pip install -r manual/requirements.txt
+      - name: Build Manual Doctrees
+        run: |
+          cd manual
+          make build
+
+      - name: Generate Mixxx control types
+        run: python tools/ts_export_docs_controls.py
+
+      - name: Check if changes any changes were made
+        run: echo "GIT_DIRTY=$(git diff --quiet ; printf "%d" "$?")" >> "${GITHUB_ENV}"
+      - uses: EndBug/add-and-commit@v9
+        if: env.GIT_DIRTY != null && env.GIT_DIRTY != '0'
+        with:
+          branch: ${{ github.event.client_payload.branch }}
+          add: "res/controllers/mixxx-controls.d.ts"
+          message: "Mixxx Control Types: Update mixxx-controls.d.ts for ${{ github.event.client_payload.branch }} branch"
+          author_name: mixxxbot
+          author_email: bot@mixxx.org
+          push: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
