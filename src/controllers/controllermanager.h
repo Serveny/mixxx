@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "controllers/controllerenumerator.h"
+#include "controllers/controllershareddata.h"
 #include "preferences/usersettings.h"
 #include "util/duration.h"
 
@@ -39,6 +40,10 @@ class ControllerManager : public QObject {
         return m_pMainThreadSystemMappingEnumerator;
     }
     QString getConfiguredMappingFileForDevice(const QString& name) const;
+
+    std::shared_ptr<ControllerSharedData> getSharedData() const {
+        return m_pSharedData;
+    }
 
     /// Prevent other parts of Mixxx from having to manually connect to our slots
     void setUpDevices() { emit requestSetUpDevices(); };
@@ -98,6 +103,7 @@ class ControllerManager : public QObject {
     /// before initialized() is emitted. Afterwards only read from the main thread
     QSharedPointer<MappingInfoEnumerator> m_pMainThreadUserMappingEnumerator;
     QSharedPointer<MappingInfoEnumerator> m_pMainThreadSystemMappingEnumerator;
+    std::shared_ptr<ControllerSharedData> m_pSharedData;
     /// Accessed only from the ControllerManager thread via slotPollDevices().
     bool m_skipPoll;
 };
