@@ -399,7 +399,7 @@ void ControllerRenderingEngine::renderFrame() {
 
     // OpenGL ES doesn't support extended reverse format (suffixed with _REV) so
     // we use QImage function for this
-    if (static_cast<std::endian>(m_screenInfo.endian) != std::endian::native) {
+    if (m_screenInfo.reversedColor) {
         fboImage.rgbSwap();
     }
 

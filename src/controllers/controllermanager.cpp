@@ -100,6 +100,7 @@ ControllerManager::ControllerManager(UserSettingsPointer pConfig)
                   std::make_unique<ControllerLearningEventFilter>()),
           m_pollTimer(this),
           m_pThread(std::make_unique<QThread>()),
+          m_pSharedData(std::make_shared<ControllerSharedData>()),
           m_skipPoll(false) {
     qRegisterMetaType<std::shared_ptr<LegacyControllerMapping>>(
             "std::shared_ptr<LegacyControllerMapping>");
@@ -119,6 +120,8 @@ ControllerManager::ControllerManager(UserSettingsPointer pConfig)
     // Move the entire ControllerManager object and all its children (including
     // the poll timer) onto the ControllerManager thread.
     moveToThread(m_pThread.get());
+    // Controllers create their namespaced children of the store on this thread.
+    m_pSharedData->moveToThread(m_pThread.get());
 
     // The ControllerManager thread is high-priority because controller input can
     // affect audio output directly (e.g. scratching).
@@ -325,6 +328,7 @@ void ControllerManager::slotSetUpDevices() {
 
         qDebug() << "Opening controller:" << name;
 
+        pController->setSharedData(m_pSharedData);
         int value = pController->open(m_pConfig->getResourcePath());
         if (value != 0) {
             qWarning() << "There was a problem opening" << name;
@@ -424,6 +428,9 @@ void ControllerManager::openController(Controller* pController) {
     if (pController->isOpen()) {
         pController->close();
     }
+    // Provide the shared data store so that applyMapping() can wire up
+    // namespace-scoped access for the controller's script engine.
+    pController->setSharedData(m_pSharedData);
     int result = pController->open(m_pConfig->getResourcePath());
     pollIfAnyControllersOpen();
 
