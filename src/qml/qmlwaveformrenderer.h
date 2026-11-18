@@ -114,6 +114,8 @@ class QmlWaveformRendererSignal
         : public QmlWaveformRendererFactory {
     Q_OBJECT
     Q_PROPERTY(bool ignoreStem MEMBER m_ignoreStem NOTIFY ignoreStemChanged)
+    Q_PROPERTY(bool ignoreEq MEMBER m_ignoreEq NOTIFY ignoreEqChanged)
+    Q_PROPERTY(bool normalized MEMBER m_normalized NOTIFY normalizedChanged)
     Q_PROPERTY(QColor axesColor MEMBER m_axesColor NOTIFY axesColorChanged REQUIRED)
     Q_PROPERTY(QColor lowColor MEMBER m_lowColor NOTIFY lowColorChanged REQUIRED)
     Q_PROPERTY(QColor midColor MEMBER m_midColor NOTIFY midColorChanged REQUIRED)
@@ -187,6 +189,8 @@ class QmlWaveformRendererSignal
     void gainMidChanged(double);
     void gainHighChanged(double);
     void ignoreStemChanged(bool);
+    void ignoreEqChanged(bool);
+    void normalizedChanged(bool);
 
   protected:
     QColor m_axesColor;
@@ -200,6 +204,8 @@ class QmlWaveformRendererSignal
     double m_gainHigh{1.0};
 
     bool m_ignoreStem{false};
+    bool m_ignoreEq{false};
+    bool m_normalized{false};
 
     ::WaveformRendererAbstract::PositionSource m_position{::WaveformRendererAbstract::Play};
 };

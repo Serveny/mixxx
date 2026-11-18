@@ -149,6 +149,16 @@ void QmlWaveformRendererSignal::setup(
             &QmlWaveformRendererSignal::ignoreStemChanged,
             pRenderer,
             &allshader::WaveformRendererSignalBase::setIgnoreStem);
+    pRenderer->setIgnoreEq(m_ignoreEq);
+    connect(this,
+            &QmlWaveformRendererSignal::ignoreEqChanged,
+            pRenderer,
+            &allshader::WaveformRendererSignalBase::setIgnoreEq);
+    pRenderer->setNormalized(m_normalized);
+    connect(this,
+            &QmlWaveformRendererSignal::normalizedChanged,
+            pRenderer,
+            &allshader::WaveformRendererSignalBase::setNormalized);
 }
 
 QmlWaveformRendererFactory::Renderer QmlWaveformRendererRGB::create(

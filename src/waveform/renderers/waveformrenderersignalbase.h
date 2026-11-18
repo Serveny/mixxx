@@ -49,6 +49,14 @@ class WaveformRendererSignalBase : public QObject, public WaveformRendererAbstra
     }
     virtual void setOptions(WaveformRendererSignalBase::Options) {
     }
+    /// Draw the signal regardless of the deck's EQ knobs and kill switches.
+    void setIgnoreEq(bool value) {
+        m_ignoreEq = value;
+    }
+    /// Scale the signal so the track's loudest peak fills the full height (ignores pregain).
+    void setNormalized(bool value) {
+        m_normalized = value;
+    }
 
   protected:
     void getGains(float* pAllGain,
@@ -72,6 +80,8 @@ class WaveformRendererSignalBase : public QObject, public WaveformRendererAbstra
     CSAMPLE_GAIN m_lowVisualGain;
     CSAMPLE_GAIN m_midVisualGain;
     CSAMPLE_GAIN m_highVisualGain;
+    bool m_ignoreEq{false};
+    bool m_normalized{false};
 
     float m_axesColor_r, m_axesColor_g, m_axesColor_b, m_axesColor_a;
     float m_signalColor_r, m_signalColor_g, m_signalColor_b;
@@ -85,4 +95,12 @@ class WaveformRendererSignalBase : public QObject, public WaveformRendererAbstra
     float m_rgbLowFilteredColor_r, m_rgbLowFilteredColor_g, m_rgbLowFilteredColor_b;
     float m_rgbMidFilteredColor_r, m_rgbMidFilteredColor_g, m_rgbMidFilteredColor_b;
     float m_rgbHighFilteredColor_r, m_rgbHighFilteredColor_g, m_rgbHighFilteredColor_b;
+
+  private:
+    float normalizationGain();
+
+    // Peak cache for normalization, recomputed when the waveform or its analysis progress changes.
+    const Waveform* m_pPeakWaveform{nullptr};
+    int m_peakCompletion{-1};
+    float m_normalizationGain{1.0f};
 };

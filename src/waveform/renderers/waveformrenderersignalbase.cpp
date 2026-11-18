@@ -1,7 +1,10 @@
 #include "waveformrenderersignalbase.h"
 
+#include <algorithm>
+
 #include "control/controlproxy.h"
 #include "moc_waveformrenderersignalbase.cpp"
+#include "track/track.h"
 #include "waveform/waveform.h"
 #include "waveform/waveformwidgetfactory.h"
 #include "waveformwidgetrenderer.h"
@@ -161,10 +164,10 @@ void WaveformRendererSignalBase::getGains(float* pAllGain,
         float* pMidGain,
         float* pHighGain) {
     if (pAllGain) {
-        *pAllGain = static_cast<CSAMPLE_GAIN>(
-                            m_waveformRenderer->getGain()) *
-                m_allChannelVisualGain;
-        ;
+        const auto gain = m_normalized
+                ? normalizationGain()
+                : static_cast<CSAMPLE_GAIN>(m_waveformRenderer->getGain());
+        *pAllGain = gain * m_allChannelVisualGain;
     }
 
     if (pLowGain || pMidGain || pHighGain) {
@@ -172,7 +175,7 @@ void WaveformRendererSignalBase::getGains(float* pAllGain,
         CSAMPLE_GAIN lowVisualGain = 1.0, midVisualGain = 1.0, highVisualGain = 1.0;
 
         // Only adjust low/mid/high gains if EQs are enabled or if there is no EQs CO setup.
-        if (!m_pEQEnabled || m_pEQEnabled->get() > 0.0) {
+        if (!m_ignoreEq && (!m_pEQEnabled || m_pEQEnabled->get() > 0.0)) {
             if (m_pLowFilterControlObject &&
                     m_pMidFilterControlObject &&
                     m_pHighFilterControlObject) {
@@ -208,4 +211,23 @@ void WaveformRendererSignalBase::getGains(float* pAllGain,
             *pHighGain = highVisualGain;
         }
     }
+}
+
+float WaveformRendererSignalBase::normalizationGain() {
+    const TrackPointer& pTrack = m_waveformRenderer->getTrackInfo();
+    const ConstWaveformPointer pWaveform = pTrack ? pTrack->getWaveform() : nullptr;
+    if (!pWaveform) {
+        return 1.0f;
+    }
+    const int completion = std::clamp(pWaveform->getCompletion(), 0, pWaveform->getDataSize());
+    if (pWaveform.get() != m_pPeakWaveform || completion != m_peakCompletion) {
+        m_pPeakWaveform = pWaveform.get();
+        m_peakCompletion = completion;
+        unsigned char peak = 0;
+        for (int i = 0; i < completion; ++i) {
+            peak = std::max(peak, pWaveform->getAll(i));
+        }
+        m_normalizationGain = peak > 0 ? 255.0f / peak : 1.0f;
+    }
+    return m_normalizationGain;
 }
