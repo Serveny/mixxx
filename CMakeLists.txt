@@ -4017,6 +4017,7 @@ if(QML)
       src/qml/qmleffectsmanagerproxy.cpp
       src/qml/qmlkeyutils.cpp
       src/qml/qmllegacylibraryitem.cpp
+      src/qml/qmllibrarybrowser.cpp
       src/qml/qmllibraryproxy.cpp
       src/qml/qmllibrarysource.cpp
       src/qml/qmllibrarysourcetree.cpp
