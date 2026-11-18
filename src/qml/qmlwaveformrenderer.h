@@ -213,6 +213,10 @@ class QmlWaveformRendererSignal
 class QmlWaveformRendererRGB
         : public QmlWaveformRendererSignal {
     Q_OBJECT
+    // Signal colors inside an enabled loop; unset keeps the normal colors.
+    Q_PROPERTY(QColor loopLowColor MEMBER m_loopLowColor NOTIFY loopColorsChanged)
+    Q_PROPERTY(QColor loopMidColor MEMBER m_loopMidColor NOTIFY loopColorsChanged)
+    Q_PROPERTY(QColor loopHighColor MEMBER m_loopHighColor NOTIFY loopColorsChanged)
     QML_NAMED_ELEMENT(WaveformRendererRGB)
 
   public:
@@ -222,6 +226,14 @@ class QmlWaveformRendererRGB
     Renderer create(WaveformWidgetRenderer* waveformWidget,
             mixxx::qml::WaveformRendererSignalBaseOptions options)
             const override;
+
+  signals:
+    void loopColorsChanged();
+
+  private:
+    QColor m_loopLowColor;
+    QColor m_loopMidColor;
+    QColor m_loopHighColor;
 };
 
 class QmlWaveformRendererFiltered

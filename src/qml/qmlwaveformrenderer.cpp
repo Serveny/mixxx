@@ -174,9 +174,16 @@ QmlWaveformRendererFactory::Renderer QmlWaveformRendererRGB::create(
                       "on scene graph backend. Ignoring";
         options ^= allshader::WaveformRendererSignalBase::Option::HighDetail;
     }
-    pRenderer.reset(new allshader::WaveformRendererRGB(
-            waveformWidget, m_position, options));
-    setup(dynamic_cast<allshader::WaveformRendererSignalBase*>(pRenderer.get()));
+    auto* pRgbRenderer = new allshader::WaveformRendererRGB(waveformWidget, m_position, options);
+    pRenderer.reset(pRgbRenderer);
+    setup(pRgbRenderer);
+    pRgbRenderer->setLoopColors(m_loopLowColor, m_loopMidColor, m_loopHighColor);
+    connect(this,
+            &QmlWaveformRendererRGB::loopColorsChanged,
+            pRgbRenderer,
+            [this, pRgbRenderer]() {
+                pRgbRenderer->setLoopColors(m_loopLowColor, m_loopMidColor, m_loopHighColor);
+            });
 
     return QmlWaveformRendererFactory::Renderer{
             dynamic_cast<::WaveformRendererAbstract*>(pRenderer.get()),

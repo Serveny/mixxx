@@ -1,5 +1,6 @@
 #include "waveform/renderers/allshader/waveformrendererrgb.h"
 
+#include "control/controlproxy.h"
 #include "rendergraph/material/rgbmaterial.h"
 #include "rendergraph/vertexupdaters/rgbvertexupdater.h"
 #include "track/track.h"
@@ -22,6 +23,25 @@ WaveformRendererRGB::WaveformRendererRGB(WaveformWidgetRenderer* waveformWidget,
 }
 
 void WaveformRendererRGB::onSetup(const QDomNode&) {
+}
+
+bool WaveformRendererRGB::onInit() {
+    // Called again on a group change, so the loop follows the displayed deck.
+    const QString& group = m_waveformRenderer->getGroup();
+    m_pLoopStart = std::make_unique<ControlProxy>(group, QStringLiteral("loop_start_position"));
+    m_pLoopEnd = std::make_unique<ControlProxy>(group, QStringLiteral("loop_end_position"));
+    m_pLoopEnabled = std::make_unique<ControlProxy>(group, QStringLiteral("loop_enabled"));
+    return true;
+}
+
+void WaveformRendererRGB::setLoopColors(const QColor& low, const QColor& mid, const QColor& high) {
+    m_loopColorsEnabled = low.isValid() && mid.isValid() && high.isValid();
+    if (!m_loopColorsEnabled) {
+        return;
+    }
+    low.getRgbF(&m_loopLowColor[0], &m_loopLowColor[1], &m_loopLowColor[2]);
+    mid.getRgbF(&m_loopMidColor[0], &m_loopMidColor[1], &m_loopMidColor[2]);
+    high.getRgbF(&m_loopHighColor[0], &m_loopHighColor[1], &m_loopHighColor[2]);
 }
 
 void WaveformRendererRGB::preprocess() {
@@ -111,6 +131,20 @@ bool WaveformRendererRGB::preprocessInner() {
     const float mid_b = static_cast<float>(m_rgbMidColor_b);
     const float high_b = static_cast<float>(m_rgbHighColor_b);
 
+    // Enabled loop range in visual frames, drawn with the loop colors.
+    double loopStartVisualFrame = -1.0;
+    double loopEndVisualFrame = -1.0;
+    const double trackSamples = m_waveformRenderer->getTrackSamples();
+    if (m_loopColorsEnabled && trackSamples > 0.0 && m_pLoopEnabled &&
+            m_pLoopEnabled->get() > 0.0) {
+        const double loopStart = m_pLoopStart->get();
+        const double loopEnd = m_pLoopEnd->get();
+        if (loopStart >= 0.0 && loopEnd > loopStart) {
+            loopStartVisualFrame = loopStart / trackSamples * visualFramesSize;
+            loopEndVisualFrame = loopEnd / trackSamples * visualFramesSize;
+        }
+    }
+
     // Effective visual frame for x
     double xVisualFrame = qRound(firstVisualFrame / visualIncrementPerPixel) *
             visualIncrementPerPixel;
@@ -197,6 +231,14 @@ bool WaveformRendererRGB::preprocessInner() {
             float red = maxLow * low_r + maxMid * mid_r + maxHigh * high_r;
             float green = maxLow * low_g + maxMid * mid_g + maxHigh * high_g;
             float blue = maxLow * low_b + maxMid * mid_b + maxHigh * high_b;
+            if (xVisualFrame >= loopStartVisualFrame && xVisualFrame < loopEndVisualFrame) {
+                red = maxLow * m_loopLowColor[0] + maxMid * m_loopMidColor[0] +
+                        maxHigh * m_loopHighColor[0];
+                green = maxLow * m_loopLowColor[1] + maxMid * m_loopMidColor[1] +
+                        maxHigh * m_loopHighColor[1];
+                blue = maxLow * m_loopLowColor[2] + maxMid * m_loopMidColor[2] +
+                        maxHigh * m_loopHighColor[2];
+            }
 
             // Normalize the color components using the maximum of the three
             const float maxComponent = math_max3(red, green, blue);
