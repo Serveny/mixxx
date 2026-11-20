@@ -8,7 +8,9 @@
 #include "library/sidebarmodel.h"
 #include "library/trackmodel.h"
 #include "moc_qmllibrarybrowser.cpp"
+#include "qml/asyncimageprovider.h"
 #include "qml/qmllibraryproxy.h"
+#include "track/keyutils.h"
 #include "util/assert.h"
 
 namespace mixxx {
@@ -141,6 +143,8 @@ void QmlLibraryBrowserWorker::attachTrackModel(QAbstractItemModel* pModel) {
     connect(pModel, &QAbstractItemModel::layoutChanged, this, scheduleTracksChanged);
     connect(pModel, &QAbstractItemModel::rowsInserted, this, scheduleTracksChanged);
     connect(pModel, &QAbstractItemModel::rowsRemoved, this, scheduleTracksChanged);
+    // E.g. a track becomes played.
+    connect(pModel, &QAbstractItemModel::dataChanged, this, scheduleTracksChanged);
 }
 
 QVariantList QmlLibraryBrowserWorker::readTracks() const {
@@ -157,8 +161,11 @@ QVariantList QmlLibraryBrowserWorker::readTracks() const {
             TrackModel::SortColumnId::Bpm);
     const int keyColumn = pTrackModel->columnIndexFromSortColumnId(
             TrackModel::SortColumnId::Key);
-    const auto read = [pModel](int row, int column) {
-        return column < 0 ? QVariant() : pModel->index(row, column).data();
+    // Its check box is the played flag of this session.
+    const int timesPlayedColumn = pTrackModel->columnIndexFromSortColumnId(
+            TrackModel::SortColumnId::TimesPlayed);
+    const auto read = [pModel](int row, int column, int role = Qt::DisplayRole) {
+        return column < 0 ? QVariant() : pModel->index(row, column).data(role);
     };
 
     QVariantList tracks;
@@ -170,12 +177,23 @@ QVariantList QmlLibraryBrowserWorker::readTracks() const {
         if (title.isEmpty()) {
             title = url.fileName();
         }
+        // The key text follows the user's notation preference; the key id lets a screen
+        // pick its own notation and colors.
+        const QString key = read(row, keyColumn).toString();
         tracks.append(QVariantMap{
                 {QStringLiteral("title"), title},
                 {QStringLiteral("artist"), read(row, artistColumn).toString()},
                 {QStringLiteral("bpm"), read(row, bpmColumn).toDouble()},
-                {QStringLiteral("key"), read(row, keyColumn).toString()},
+                {QStringLiteral("key"), key},
+                {QStringLiteral("keyId"), static_cast<int>(KeyUtils::guessKeyFromText(key))},
                 {QStringLiteral("url"), url},
+                {QStringLiteral("played"),
+                        read(row, timesPlayedColumn, Qt::CheckStateRole).toInt() ==
+                                Qt::Checked},
+                // Not every track model knows the artwork without loading the track (Computer),
+                // so screens request it and get no image for tracks without one.
+                {QStringLiteral("coverArtUrl"),
+                        AsyncImageProvider::trackLocationToCoverArtUrl(url.toLocalFile())},
         });
     }
     return tracks;

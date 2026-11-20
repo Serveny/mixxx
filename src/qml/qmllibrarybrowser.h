@@ -36,8 +36,9 @@ class QmlLibraryBrowser : public QObject {
   signals:
     /// `labels` names each item along `path`, `children` the labels of the opened item's children.
     void opened(const QList<int>& path, const QStringList& labels, const QStringList& children);
-    /// Tracks of the opened item, as maps with title, artist, bpm, key and url; empty if the item
-    /// has no track list. Emitted again whenever that list changes (folders load asynchronously).
+    /// Tracks of the opened item, as maps with title, artist, bpm, key (display text), keyId
+    /// (ChromaticKey), url, played (in this session) and coverArtUrl; empty if the item has no
+    /// track list. Emitted again whenever that list changes (folders load asynchronously).
     void tracksChanged(const QVariantList& tracks);
 
   private:
